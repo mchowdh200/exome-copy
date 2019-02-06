@@ -40,6 +40,7 @@ autoheader
 autoconf
 ./configure  --disable-bz2  --disable-lzma
 make
+export LD_LIBRARY_PATH=/mnt/local/htslib
 ln -s "$(pwd)/bgzip" $BIN_DIR
 ln -s "$(pwd)/tabix" $BIN_DIR
 cd $TMPDIR
