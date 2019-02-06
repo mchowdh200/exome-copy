@@ -1,0 +1,40 @@
+* Amazon AWS notes
+- if logging into my machine for the first time make sure to
+  *export SSEC2_PROFILE=layerlab*
+
+** Preparing the instance
+*** Launching an i3.large instance
+- *ssec2 launch -t i3.large -n bam_file_processing*
+  
+- -t is the type of instance
+- -n is the name of the instance(?)
+  
+*** Connecting to the instance
+- *ssec2 connect -l* to list the running instances
+- *ssec2 connect -i name_of_instance*
+
+*** Preparation Script
+- after launching an instance of i3.large run the following
+  *bash <(curl -s http://layerlab.org/aws/i3.sh)*
+
+- (maybe run with *sudo*)
+
+  This is just downloading a script hosted on Ryan's website and executing it
+  in order to prepare instance with various bits of software.
+
+- TODO look into the contents of the script and see if I can add some stuff 
+  in there.  Maybe I should just download a local copy for my self and put
+  on the git repo.
+  
+*** Install mosdepth
+- install from
+  https://github.com/brentp/mosdepth/releases/download/v0.2.4/mosdepth
+
+- Just use *wget* to download the binary to desired location 
+  */mnt/local/bin* will have been created during the setup script
+
+- make sure it's on your path
+  
+- make sure to *chmod +x mosdepth*
+  
+
