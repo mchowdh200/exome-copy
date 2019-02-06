@@ -65,9 +65,9 @@ cd $TMPDIR
 mkdir mosdepth
 cd mosdepth
 wget https://github.com/brentp/mosdepth/releases/download/v0.2.4/mosdepth
+chmod +x mosdepth
 ln -s "$(pwd)/mosdepth" $BIN_DIR
 cd $TMPDIR
-
 
 pip install svtools
 pip install matplotlib
