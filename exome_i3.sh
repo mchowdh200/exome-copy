@@ -1,3 +1,4 @@
+#!/bin/bash
 set -exuo pipefail
 export TMPDIR=/mnt/local
 sudo apt-get update
@@ -63,15 +64,14 @@ ln -s "$(pwd)/bcftools" $BIN_DIR
 cd $TMPDIR
 
 # add mosdepth
-mkdir mosdepth
-cd mosdepth
+# mkdir mosdepth
+# cd mosdepth
+cd $BIN_DIR
 wget https://github.com/brentp/mosdepth/releases/download/v0.2.4/mosdepth
 chmod +x mosdepth
-ln -s "$(pwd)/mosdepth" $BIN_DIR
+# ln -s "$(pwd)/mosdepth" $BIN_DIR
 cd $TMPDIR
 
 pip install svtools
 pip install matplotlib
-
-
 
