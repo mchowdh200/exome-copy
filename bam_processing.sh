@@ -4,7 +4,7 @@ storage_dir=/mnt/local
 
 # get file name from command line arg
 bam_file=$1
-# echo $bam_file
+echo Processing $bam_file
 bai_file=${bam_file}.bai
 
 # get just the filenames without directory prefix
@@ -25,6 +25,13 @@ aws s3 cp "s3://1000genomes/phase1/$bai_file" $storage_dir
 # call mosdepth to generate output file
 cd $storage_dir
 mosdepth --by "${script_dir}/20120518.consensus_add50bp.bed" $batch_number $bam_no_dir
+
+# echo ${batch_number}.mosdepth.global.dist.txt
+# echo ${batch_number}.mosdepth.region.dist.txt
+# echo ${batch_number}.per-base.bed.gz
+# echo ${batch_number}.per-base.bed.gz.csi
+# echo ${batch_number}.regions.bed.gz
+# echo ${batch_number}.regions.bed.gz.csi
 
 # copy over the output file to s3 and clean up after ourselves
 aws s3 cp ${batch_number}.mosdepth.global.dist.txt s3://layerlab/exome/
