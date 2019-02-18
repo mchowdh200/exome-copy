@@ -4,10 +4,8 @@
 
 ** Preparing the instance
 *** Launching an i3.large instance
-- *ssec2 launch -t i3.large -n bam_file_processing*
-  
+- *ssec2 launch -t i3.large*
 - -t is the type of instance
-- -n is the name of the instance(?)
   
 *** Connecting to the instance
 - *ssec2 connect -l* to list the running instances
@@ -22,7 +20,7 @@
   This is just downloading a script hosted on Ryan's website and executing it
   in order to prepare instance with various bits of software.
 
-- TODO look into the contents of the script and see if I can add some stuff 
+- DONE look into the contents of the script and see if I can add some stuff 
   in there.  Maybe I should just download a local copy for my self and put
   on the git repo.
   
@@ -38,3 +36,7 @@
 - make sure to *chmod +x mosdepth*
   
 
+
+** Extracting signal
+- use the following command to run the get_exons.sh script with gargs
+  cat 20120518.consensus_add50bp.bed | gargs --log get_exons.log -o -p 4 "bash get_exons.sh {0} {1} {2} HG00096.per-base.bed.gz" > output.txt
