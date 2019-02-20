@@ -3,14 +3,6 @@
 # write each region as:
 # chrom    start    end     sig_1,sig_2,...
 
-# regions=$(cat $1)
-
-# while read -r region; do
-
-# separate the columns of the bed file and get the reads
-# region_chr=$(echo $region | cut -d ' ' -f1)
-# region_start=$(echo $region | cut -d ' ' -f2)
-# region_end=$(echo $region | cut -d ' ' -f3)
 region_chr=$1
 region_start=$2
 region_end=$3
