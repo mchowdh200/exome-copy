@@ -35,8 +35,20 @@
   
 - make sure to *chmod +x mosdepth*
   
+*** Command to run on instance once everything is setup
+aws s3 cp s3://1000genomes/phase1/phase1.exome.alignment.index - |  tail -n+2 | gargs -p 10 'bash bam_processing.sh {0}'
+  
 
 
 ** Extracting signal
 - use the following command to run the get_exons.sh script with gargs
   cat 20120518.consensus_add50bp.bed | gargs --log get_exons.log -o -p 4 "bash get_exons.sh {0} {1} {2} HG00096.per-base.bed.gz" > output.txt
+
+  
+* bcftools notes
+** command for deletions
+*** TODO Understand each part of this command so I can modify if necessary.
+bcftools view -s HG00096 -c 1 -i 'SVTYPE="DEL"' $VCF | \
+bcftools query -f 'CHROM\t%POS\t%INFO/END\t[%GT]\n' | \
+bedtools intersect -wao stdin -a HG00096.regions.bed.gz -f 0.5 | \
+awk '{OFS="\t"; o=$8; if (o==".") {o="0|0";}  print $1,$2,$3,o}' 
