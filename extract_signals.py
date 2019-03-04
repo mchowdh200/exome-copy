@@ -32,23 +32,3 @@ with gzip.open(REGIONS_BED, mode='rt') as regions:
                                           end,
                                           ','.join(depths)))
 
-
-# for l in sys.stdin:
-#     A = l.rstrip().split()
-#     chrm = A[0]
-#     start = int(A[1])
-#     end = int(A[2])
-
-#     depths = []
-#     for row in tabixfile.fetch(chrm, start, end):
-#         _A = row.rstrip().split()
-#         row_start = int(_A[1])
-#         if row_start < start:
-#             row_start = start
-#         row_end = int(_A[2])
-#         if row_end > end:
-#             row_end = end
-#         depth = _A[3]
-#         depths += [depth]*(row_end-row_start)
-
-#     print '\t'.join(A[:3]) + '\t' + ','.join(depths)
