@@ -17,19 +17,19 @@ with gzip.open(REGIONS_BED, mode='rt') as regions:
         end= int(A[2])
         depths = []
         for row in tabixfile.fetch(chrom, start, end):
-            A = row.rstrip().split()
-            region_start = int(A[1])
-            if region_start < start:
-                region_start = start
-            region_end = int(A[2])
-            if region_end > end:
-                region_end = end
-            depth = A[3]
-            depths += [depth] * (region_end - region_start)
+            B = row.rstrip().split()
+            row_start = int(B[1])
+            if row_start < start:
+                row_start = start
+            row_end = int(B[2])
+            if row_end > end:
+                row_end = end
+            depth = B[3]
+            depths += [depth] * (row_end - row_start)
 
         print('{0}\t{1}\t{2}\t{3}'.format(chrom, 
-                                          region_start,
-                                          region_end,
+                                          start,
+                                          end,
                                           ','.join(depths)))
 
 
