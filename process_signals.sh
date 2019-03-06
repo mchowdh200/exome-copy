@@ -17,7 +17,9 @@ fi
 
 # don't recalculate if I don't have to
 if [ ! -f $SIGNALS_BED ]; then
-    python3 extract_signals.py $SAMPLE > $SIGNALS_BED
+    output=$(python3 extract_signals.py $SAMPLE)
+    echo "$output" > $SIGNALS_BED
+    # python3 extract_signals.py $SAMPLE > $SIGNALS_BED
 fi
 
 aws s3 cp $SIGNALS_BED "s3://layerlab/exome/signals/$SIGNALS_BED"
