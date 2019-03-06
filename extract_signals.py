@@ -1,7 +1,10 @@
 
+import io
 import sys
 import gzip
 import pysam
+
+output = io.StringIO()
 
 REGIONS_BED = sys.argv[1]+'.regions.bed.gz'
 PERBASE_BED = sys.argv[1]+'.per-base.bed.gz'
@@ -27,8 +30,15 @@ with gzip.open(REGIONS_BED, mode='rt') as regions:
             depth = B[3]
             depths += [depth] * (row_end - row_start)
 
-        print('{0}\t{1}\t{2}\t{3}'.format(chrom, 
-                                          start,
-                                          end,
-                                          ','.join(depths)))
+        output.write('{0}\t{1}\t{2}\t{3}\n'.format(chrom, 
+                                                   start,
+                                                   end,
+                                                   ','.join(depths)))
+
+with open(sys.argv[1]+'signals.bed', 'w') as file:
+    file.write(output.getvalue())
+        # print('{0}\t{1}\t{2}\t{3}'.format(chrom, 
+        #                                   start,
+        #                                   end,
+        #                                   ','.join(depths)))
 
