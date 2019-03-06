@@ -45,7 +45,7 @@ aws s3 cp s3://1000genomes/phase1/phase1.exome.alignment.index - |  tail -n+2 | 
   cat 20120518.consensus_add50bp.bed | gargs --log get_exons.log -o -p 4 "bash get_exons.sh {0} {1} {2} HG00096.per-base.bed.gz" > output.txt
   
 * Get Samples with a per-base.bed.gz.csi from the exome dir
-tr -s ' ' < exome-dir.txt | cut -d ' ' -f4 | cut -d '.' -f1 | uniq > samples.txt
+cat exome-dir.txt | awk '/.per-base.bed.gz.csi/{print}' | tr -s ' ' | cut -d ' ' -f4 | cut -d '.' -f1 | uniq > samples.txt
 
   
 * bcftools notes
