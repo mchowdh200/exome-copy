@@ -17,8 +17,9 @@ fi
 
 # don't recalculate if I don't have to
 if [ ! -f $SIGNALS_BED ]; then
-    output=$(python3 extract_signals.py $SAMPLE)
-    echo "$output" > $SIGNALS_BED
+    python3 extract_signals.py $SAMPLE
+    # output=$(python3 extract_signals.py $SAMPLE)
+    # echo "$output" > $SIGNALS_BED
     # python3 extract_signals.py $SAMPLE > $SIGNALS_BED
 fi
 
