@@ -25,5 +25,5 @@ fi
 
 aws s3 cp $SIGNALS_BED "s3://layerlab/exome/signals/$SIGNALS_BED"
 
-rm "$SAMPLE.*"
+rm $SAMPLE.*
 

@@ -35,7 +35,7 @@ with gzip.open(REGIONS_BED, mode='rt') as regions:
                                                    end,
                                                    ','.join(depths)))
 
-with open(sys.argv[1]+'signals.bed', 'w') as file:
+with open(sys.argv[1]+'.signals.bed', 'w') as file:
     file.write(output.getvalue())
         # print('{0}\t{1}\t{2}\t{3}'.format(chrom, 
         #                                   start,
