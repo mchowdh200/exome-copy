@@ -1,46 +1,84 @@
-"""
-Demonstrate how to get the pileup sequence for a given region
-and plot the sequence/read depth as a colorcoded bar plot
-"""
 import sys
-from io import StringIO
+from collections import Counter
 import pysam
-# import matplotlib.pyplot as plt
+import pandas as pd
 
-REGIONS_BED = sys.argv[1]
-BAM_FILE = sys.argv[2]
 
-out = StringIO()
+# def get_pileup(region, samfile):
+#     """
+#     For a given genomic region, get the pileup at each position and
+#     return the read depth and sequence.
 
-with open(REGIONS_BED, 'r') as regions, \
-        pysam.AlignmentFile(BAM_FILE, 'rb') as samfile:
-    for line in regions:
-        A = line.rstrip().split()
-        chrom = A[0]
-        start = int(A[1])
-        end = int(A[2])
-        
-        signal = []
-        sequence = []
-        for x in samfile.pileup(chrom, start, end, truncate=True):
-            seq = x.get_query_sequences()
-            if seq:
-                # modify this to get a distribution over bases?
-                signal.append(len(seq))
-                sequence.append(seq[0])
-            else:
-                signal.append(0)
-                sequence.append('_')
-        # print('{0}\t{1}\t{2}\t{3}\t{4}'.format(
-        #     chrom, start, end, signal, ''.join(sequence)))
-        out.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(
-            chrom, start, end, signal, ''.join(sequence)))
-    print(out.getvalue())
+#     INPUTS: 
+#         - bed region string i.e. "chrom    start    end"
+#         - AlignmentFile object used to get the pileups
 
-#     # visualize a region by read depth color coded by base
-#     base2color = {'A': 'red', 'a': 'red', 'T': 'green',
-#                   't': 'green', 'C': 'blue', 'c': 'blue',
-#                   'G': 'black', 'g': 'black', '_': 'cyan'}
-#     plt.bar(range(len(signal)), signal, width=1,
-#             color=[base2color[i] for i in sequence])
-#     plt.show()
+#     """
+#     A = region.rstrip().split()
+#     chrom = A[0]
+#     start = int(A[1])
+#     end = int(A[2])
+    
+#     signal = []
+#     sequence = []
+#     # QUESTION: will it be possible for me to to multiprocessing pileup using
+#     # just a single samfile object? or will I have to open the file in here?
+#     # ANSWER: no, just open a new one here
+#     with pysam.AlignmentFile(BAM_FILE, 'rb') as samfile:
+#         for x in samfile.pileup(chrom, start, end, truncate=True):
+#             seq = x.get_query_sequences()
+#             if seq:
+#                 # modify this to get a distribution over bases
+#                 signal.append(len(seq))
+#                 sequence.append(seq[0])
+#             else:
+#                 # if there was no pileup at this position
+#                 signal.append(0)
+#                 sequence.append('N')
+#     return chrom, start, end, signal, sequence
+
+
+# if __name__ == '__main__':
+#     # Get filenames from command line args
+#     REGIONS_BED = sys.argv[1]
+#     BAM_FILE = sys.argv[2]
+
+#     with multiprocessing.Pool() as pool, \
+#             open(REGIONS_BED, 'r') as regions:
+#         # for each line in the regions bed file, this will in a multiprocessing
+#         # fashion return each output of get_pileup to a list.
+#         data = pool.imap_unordered(get_pileup, (line for line in regions))
+#         df = pd.DataFrame(list(data), columns=['chr', 'start', 'end', 'signal', 'sequence'])
+#         df.to_csv('out.txt', sep='\t', header=False, index=False)
+
+    #     # visualize a region by read depth color coded by base
+    #     base2color = {'A': 'red', 'a': 'red', 'T': 'green',
+    #                   't': 'green', 'C': 'blue', 'c': 'blue',
+    #                   'G': 'black', 'g': 'black', '_': 'cyan'}
+    #     plt.bar(range(len(signal)), signal, width=1,
+    #             color=[base2color[i] for i in sequence])
+    #     plt.show()
+
+def main():
+
+    # bases = ['a', 'A', 't', 'T', 'c', 'C', 'g', 'G']
+    REGIONS_BED = sys.argv[1]
+    BAM_FILE = sys.argv[2]
+
+    data = []
+    with open(REGIONS_BED, 'r') as regions, \
+            pysam.AlignmentFile(BAM_FILE, 'rb') as samfile:
+        for region in regions:
+            chrom, start, end = region.rstrip().split()
+            pileups = samfile.pileup(chrom, int(start), int(end), truncate=True)
+            
+            data.append([(Counter(column.get_query_sequences()), column.get_num_aligned())
+                    for column in pileups])
+
+        data = pd.DataFrame(data, columns=['chrom', 'start', 'end', 'data'])
+
+main()
+
+
+
+
