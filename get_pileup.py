@@ -6,7 +6,6 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 np.set_printoptions(threshold=sys.maxsize)
-# bases = ['a', 'A', 't', 'T', 'c', 'C', 'g', 'G']
 REGIONS_BED = sys.argv[1]
 BAM_FILE = sys.argv[2]
 
@@ -18,8 +17,7 @@ def get_pileups(reg, file):
     """
     chrom, start, end = reg.rstrip().split()
     with pysam.AlignmentFile(file, 'rb') as samfile:
-        pileups = samfile.pileup(chrom, int(start), int(end), truncate=True,
-                                 multiple_iterators=True)
+        pileups = samfile.pileup(chrom, int(start), int(end), truncate=True,)
         return reg, pd.DataFrame.from_records([Counter(column.get_query_sequences())
                                                for column in pileups],
                                                columns=['A', 'T', 'C', 'G',
@@ -27,9 +25,7 @@ def get_pileups(reg, file):
 
 
 with open(REGIONS_BED, 'r') as regions:
-        # pysam.AlignmentFile(BAM_FILE, 'rb') as samfile:
-    # with parallel_backend('threading', n_jobs=-1):
-    data = Parallel(n_jobs=-1)(delayed(get_pileups)(region, BAM_FILE) 
+    data = Parallel(n_jobs=1)(delayed(get_pileups)(region, BAM_FILE) 
                       for region, _ in zip(regions, range(1000)))
 
     for region, df in data:
