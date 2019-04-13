@@ -11,6 +11,14 @@
 #SBATCH --error=/Users/much8161/Repositories/exome-copy/out/structural_variant_extraction.err
 
 OUT_DIR=/scratch/Shares/layer/projects/exome-copy/data/labels
-SAMPLES=/Users/much8161/Repositories/exome-copy/data/samples.txt
+
+# TODO use bcftools query -l <input.vcf> to get the list of samples
+# SAMPLES=/Users/much8161/Repositories/exome-copy/data/samples.txt
+
+# get the intersection of samples from our exome bam set and the samples
+# in the structural variant vcf file.
+SAMPLES=$(sort <(cat data/samples.txt) <(bcftools query -l \
+    data/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz) | \
+    uniq -d)
 
 cat $SAMPLES | gargs -p 32 "bash get_labels.sh {} $OUT_DIR"

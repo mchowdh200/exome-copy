@@ -14,19 +14,41 @@ VCF=data/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz
 EXON_BED=data/20120518.consensus_add50bp.bed
 
 # get deletions
-bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="DEL"' $VCF | \
-bcftools query -f '%CHROM\t%POS\t%INFO/END\t[%GT]\n' | \
-bedtools intersect -wao -b stdin -a $EXON_BED -f 0.25 | \
-awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > "$OUT_DIR/$SAMPLE.del.bed"
+if [ ! -f "$OUT_DIR/$SAMPLE.del.bed" ]; then
+    bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="DEL"' $VCF | \
+    bcftools query -f '%CHROM\t%POS\t%INFO/END\t[%GT]\n' | \
+    bedtools intersect -wao -b stdin -a $EXON_BED -f 0.25 | \
+    awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > "$OUT_DIR/$SAMPLE.del.bed"
+
+    # remove empty result
+    if [ -s "$OUT_DIR/$SAMPLE.del.bed" ]; then
+        rm "$OUT_DIR/$SAMPLE.del.bed"
+    fi
+fi
 
 # get duplications
-bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="DUP"' $VCF | \
-bcftools query -f '%CHROM\t%POS\t%INFO/END\t[%GT]\n' | \
-bedtools intersect -wao -b stdin -a $EXON_BED -f 0.25 | \
-awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > "$OUT_DIR/$SAMPLE.dup.bed"
+if [ ! -f "$OUT_DIR/$SAMPLE.dup.bed" ]; then
+    bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="DUP"' $VCF | \
+    bcftools query -f '%CHROM\t%POS\t%INFO/END\t[%GT]\n' | \
+    bedtools intersect -wao -b stdin -a $EXON_BED -f 0.25 | \
+    awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > "$OUT_DIR/$SAMPLE.dup.bed"
+
+    if [ -s "$OUT_DIR/$SAMPLE.dup.bed" ]; then
+        rm "$OUT_DIR/$SAMPLE.dup.bed"
+    fi
+fi
+
+# get non-structural variants
+if [ ! -f "$OUT_DIR/$SAMPLE.nosv.bed" ]; then
+    bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="DUP"|SVTYPE="DEL"|SVTYPE="CNV"' $VCF | \
+    bcftools query -f '%CHROM\t%POS\t%INFO/END\n' | \
+    bedtools intersect -v -b stdin -a $EXON_BED -f 0.25 > "$OUT_DIR/$SAMPLE.nosv.bed"
+
+    if [ -s "$OUT_DIR/$SAMPLE.nosv.bed" ]; then
+        rm "$OUT_DIR/$SAMPLE.nosv.bed"
+    fi
+fi
+
+
 
 # get CNV TODO This may need more than just genotype to interpret
-# bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="CNV"' $VCF | \
-# bcftools query -f '%CHROM\t%POS\t%INFO/END\t[%GT]\n' | \
-# bedtools intersect -wao -b stdin -a $SAMPLE.signals.bed -f 0.25 | \
-# awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > $SAMPLE.del.bed
