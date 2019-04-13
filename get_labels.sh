@@ -21,7 +21,7 @@ if [ ! -f "$OUT_DIR/$SAMPLE.del.bed" ]; then
     awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > "$OUT_DIR/$SAMPLE.del.bed"
 
     # remove empty result
-    if [ -s "$OUT_DIR/$SAMPLE.del.bed" ]; then
+    if [ ! -s "$OUT_DIR/$SAMPLE.del.bed" ]; then
         rm "$OUT_DIR/$SAMPLE.del.bed"
     fi
 fi
@@ -33,7 +33,7 @@ if [ ! -f "$OUT_DIR/$SAMPLE.dup.bed" ]; then
     bedtools intersect -wao -b stdin -a $EXON_BED -f 0.25 | \
     awk '{OFS="\t"; label=$7; if(label==".") {next} print $1,$2,$3,label}' > "$OUT_DIR/$SAMPLE.dup.bed"
 
-    if [ -s "$OUT_DIR/$SAMPLE.dup.bed" ]; then
+    if [ ! -s "$OUT_DIR/$SAMPLE.dup.bed" ]; then
         rm "$OUT_DIR/$SAMPLE.dup.bed"
     fi
 fi
@@ -42,9 +42,9 @@ fi
 if [ ! -f "$OUT_DIR/$SAMPLE.nosv.bed" ]; then
     bcftools view -s $SAMPLE -c 1 -i 'SVTYPE="DUP"|SVTYPE="DEL"|SVTYPE="CNV"' $VCF | \
     bcftools query -f '%CHROM\t%POS\t%INFO/END\n' | \
-    bedtools intersect -v -b stdin -a $EXON_BED -f 0.25 > "$OUT_DIR/$SAMPLE.nosv.bed"
+    bedtools intersect -v -b stdin -a $EXON_BED > "$OUT_DIR/$SAMPLE.nosv.bed"
 
-    if [ -s "$OUT_DIR/$SAMPLE.nosv.bed" ]; then
+    if [ ! -s "$OUT_DIR/$SAMPLE.nosv.bed" ]; then
         rm "$OUT_DIR/$SAMPLE.nosv.bed"
     fi
 fi
