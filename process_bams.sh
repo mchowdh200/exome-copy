@@ -13,7 +13,7 @@ if [ -f "$DATA_DIR/$BAM_FILE" ] && [ -f "$DATA_DIR/$BAM_FILE.bai" ]; then
 
     # get pileups sequence from bam files
     if [ -f "$DATA_DIR/labels/$SAMPLE.del.bed" ] && \
-       [ ! -f "$DATA_dir/pileups/$SAMPLE.pileups.del.bed" ]; then
+       [ ! -f "$DATA_DIR/pileups/$SAMPLE.pileups.del.bed" ]; then
         python get_pileup.py \
             "$DATA_DIR/labels/$SAMPLE.del.bed" \
             "$DATA_DIR/$BAM_FILE" > "$DATA_DIR/pileups/$SAMPLE.pileups.del.bed"
