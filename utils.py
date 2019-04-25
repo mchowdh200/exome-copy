@@ -7,8 +7,8 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 def load_data(del_file='./data/dataset/deletions.pkl', 
               dup_file='./data/dataset/duplications.pkl', 
               non_file='./data/dataset/non_sv.pkl',
-              seq_length=1000, test_size=0.1, channels_first=True,
-              normalize=False):
+              seq_length=500, test_size=0.1, channels_first=True,
+              normalize_data=False):
     """
     Load data from pickled dataframes.  Combines data into matrices, and
     pads/truncates data, and returns data data in the form of a train test
@@ -39,7 +39,7 @@ def load_data(del_file='./data/dataset/deletions.pkl',
                    for d in data]
     data_padded = np.array(data_padded)
 
-    if normalize:
+    if normalize_data:
         data_padded = normalize(data_padded)
 
     if not channels_first:
