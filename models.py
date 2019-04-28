@@ -1,82 +1,133 @@
-import numpy as np
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv1D, MaxPool1D, AveragePooling1D
-from tensorflow.keras.layers import CuDNNLSTM, Bidirectional
+from tensorflow.keras.layers import LSTM, Bidirectional
 from tensorflow.keras.layers import Activation, LeakyReLU
-from tensorflow.keras.layers import BatchNormalization, GaussianNoise, Dropout
+from tensorflow.keras.layers import BatchNormalization, LayerNormalization
+from tensorflow.keras.layers import GaussianNoise, Dropout
 from tensorflow.keras.layers import TimeDistributed, Flatten, Permute
-from tensorflow.keras.layers import Input, multiply
-
-from tensorflow.keras.regularizers import l1, l2
+from tensorflow.keras.layers import multiply
+from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import normalize
-from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
+
+# Utility Classes -------------------------------------------------------------
 
 class ModelFactory:
-    def __init__(self, model_class):
+    """
+    Helper class used to return a compiled keras model.
+    """
+    def __init__(self, model_class, **model_params):
         """
         Pass in a keras model class (just the class not an instance)
         """
         self.model_class = model_class
+        self.model_params = model_params
 
-    def __call__(self, input_shape, 
-                 lr=1e-3, clipnorm=1, decay=1e-5, amsgrad=True,
-                 **kwargs):
+    def __call__(self, input_shape=None, lr=1e-3, clipnorm=1, 
+                 decay=1e-5, amsgrad=True):
         """
-        Factory function to be called by a KerasClassifier object
+        Factory function to be called by a KerasClassifier object.
+        Instantiates a model given by model_class with **kwargs.  
+        Compiles model with the rest of the provided arguments.
+
+        Pass the input_shape arg if your model needs to know the input
+        shape upon instantiation.
         """
-        model = self.model_class(input_shape, **kwargs)
+
+        # yuck
+        if input_shape:
+            model = self.model_class(input_shape, **self.model_params)
+        else:
+            model = self.model_class(**self.model_params)
+
         model.compile(optimizer=Adam(lr=lr, clipnorm=clipnorm,
-                                     decay=decay,amsgrad=amsgrad),
+                                     decay=decay, amsgrad=amsgrad),
                       loss='categorical_crossentropy',
                       metrics=['accuracy'])
         return model
 
-
-
-
-# Model Factories ------------------------------------------------------------
-def conv1D_model(input_shape):
+# Model building blocks -------------------------------------------------------
+class Conv1DBlock(tf.keras.Model):
     """
-    Simple 1d convnet. Input shape is (batch_size, num_channels, sequence_length)
+    Block containing a conv1d layer followed by dropout, batchnorm, and pooling
     """
-    # TODO add more input parameters
-    model = Sequential([
-        Conv1D(input_shape=input_shape,
-               filters=128,
-               kernel_size=12,
-               strides=1,
-               dilation_rate=1,
-               data_format='channels_first',
-               kernel_initializer='glorot_uniform'),
-        Dropout(0.25),
-        BatchNormalization(),
-        Activation(LeakyReLU()),
-        MaxPool1D(pool_size=3),
+    def __init__(self, #input_shape, 
+                 filters=128, kernel_size=6,
+                 strides=1, dilation_rate=1,
+                 dropout_rate=0.2, pool_size=2,
+                 data_format='channels_first',
+                 normalization_type='batch'):
+        super().__init__()
+        self.conv1d = Conv1D(filters=filters, kernel_size=kernel_size,
+                             strides=strides, dilation_rate=dilation_rate,
+                             data_format=data_format,
+                             kernel_initializer='glorot_uniform')
+        self.dropout = Dropout(rate=dropout_rate)
+        if normalization_type == 'batch':
+            self.normalization = BatchNormalization()
+        else:
+            self.normalization = LayerNormalization(epsilon=1e-6)
+        self.leaky_relu = Activation(LeakyReLU())
+        self.avg_pool = AveragePooling1D(pool_size=pool_size,
+                                         data_format=data_format)
 
-        Conv1D(filters=64,
-               kernel_size=6,
-               strides=1,
-               dilation_rate=1,
-               data_format='channels_first',
-               kernel_initializer='glorot_uniform'),
-        BatchNormalization(),
-        Activation(LeakyReLU()),
-        Dropout(0.25),
-        MaxPool1D(pool_size=3),
+    def call(self, input_tensor):
+        x = self.conv1d(input_tensor)
+        x = self.dropout(x)
+        x = self.normalization(x)
+        x = self.leaky_relu(x)
+        return self.avg_pool(x)
 
-        Flatten(), 
-        Dense(3, activation='softmax')
-    ])
+    def compute_output_shape(self, input_shape):
+        x = self.conv1d.compute_output_shape(input_shape)
+        return self.avg_pool.compute_output_shape(x)
 
-    model.compile(optimizer=Adam(clipnorm=1, amsgrad=True), 
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    return model
+
+class AttentionBlock(tf.keras.Model):
+    """
+    Attention weighting of the input parameterized by a dense 
+    feedforward network with softmax output layer.
+    """
+    def __init__(self, input_shape):
+        super(AttentionBlock, self).__init__(name='')
+        # self.input_shape = input_shape
+        self.permute = Permute((2, 1))
+        self.dense = Dense(input_shape[0], activation='relu')
+        self.attention_scores = Dense(input_shape[0])
+
+    def call(self, input_tensor):
+        # expecting input_shape to be (batch_size, time_steps, num_features)
+        # format the input to the attention scorer to be 
+        # (batch, num_features, time_steps)
+        a = self.permute(input_tensor)
+        a = self.dense(a)
+        a = self.attention_scores(a)
+        a = self.permute(a)
+        return multiply([a, input_tensor]) # weight input by attention
+
+# Models ----------------------------------------------------------------------
+class Conv1DModel(tf.keras.Model):
+    def __init__(self, normalization_type='layer'):
+        super().__init__()
+        self.conv1 = Conv1DBlock(filters=128, 
+                                 kernel_size=12,
+                                 dropout_rate=0.25, 
+                                 pool_size=3,
+                                 normalization_type=normalization_type)
+        self.conv2 = Conv1DBlock(filters=64, 
+                                 kernel_size=6, 
+                                 dropout_rate=0.25,
+                                 pool_size=3,
+                                 normalization_type=normalization_type)
+        self.flatten = Flatten()
+        self.softmax = Dense(3, activation='softmax')
+
+    def call(self, input_tensor):
+        x = self.conv1(input_tensor)
+        x = self.conv2(x)
+        return self.softmax(self.flatten(x))
+
 
 def rnn_model(input_shape):
     """
@@ -84,7 +135,10 @@ def rnn_model(input_shape):
     (batch_size, seq_length, features)
     """
     model = Sequential([
-        Bidirectional(CuDNNLSTM(units=256, input_shape=input_shape)),
+        Bidirectional(LSTM(units=256, input_shape=input_shape,
+                           return_sequences=True)),
+        LayerNormalization(epsilon=1e-6),
+        Bidirectional(LSTM(units=256, input_shape=input_shape,)),
         Dense(units=3, activation='softmax')
     ])
 
@@ -96,93 +150,124 @@ def rnn_model(input_shape):
                   metrics=['accuracy'])
     return model
 
-def cnn1D_rnn_model(input_shape):
-    """
-    Initial layers consist of a 1d convnet.  The output feature maps are then
-    fed into a bidirectional RNN.  Input shape is 
-    (batch_size, num_channels, seq_length)
-    """
-    model = Sequential([
-        ## Conv layers -----------------------------------------------------------
-        GaussianNoise(stddev=0.05, input_shape=input_shape),
-        Conv1D(filters=128,
-               kernel_size=12,
-               strides=1,
-               dilation_rate=1,
-               data_format='channels_first',
-               kernel_initializer='glorot_uniform'),
-        Dropout(0.25),
-        BatchNormalization(),
-        Activation(LeakyReLU()),
-        # MaxPool1D(pool_size=3, data_format='channels_first'),
-        AveragePooling1D(pool_size=3, data_format='channels_first'),
 
-        Conv1D(filters=256,
-               kernel_size=6,
-               strides=1,
-               dilation_rate=1,
-               data_format='channels_first',
-               kernel_initializer='glorot_uniform'),
-        BatchNormalization(),
-        Activation(LeakyReLU()),
-        Dropout(0.25),
-        MaxPool1D(pool_size=3, data_format='channels_first'),
-        AveragePooling1D(pool_size=3, data_format='channels_first'),
+class Conv1DRNNModel(tf.keras.Model):
+    def __init__(self, conv_before=True, conv_after=False):
+        super().__init__()
 
-        ## recurrent layers -------------------------------------------------------
-        Bidirectional(CuDNNLSTM(units=128,
-                                kernel_regularizer=l2(1e-4),
-                                recurrent_regularizer=l2(1e-4),
-                                return_sequences=True)),
-        Bidirectional(CuDNNLSTM(units=128,
-                                kernel_regularizer=l2(1e-4),
-                                recurrent_regularizer=l2(1e-4),
-                                return_sequences=False)),
+        self.conv_before = conv_before
+        self.conv_after = conv_after
 
-        ## Output layer -----------------------------------------------------------
-        Dense(3, activation='softmax')
-        ])
+        # pre recurrent conv layers
+        self.conv1 = Conv1DBlock(
+            filters=128, 
+            kernel_size=12,
+            dropout_rate=0.25, 
+            pool_size=3,
+            data_format='channels_last')
+        self.conv2 = Conv1DBlock(
+            filters=256, 
+            kernel_size=6,
+            dropout_rate=0.25, 
+            pool_size=3,
+            data_format='channels_last')
 
-    model.compile(optimizer=Adam(lr=1e-3, clipnorm=1, decay=1e-5, amsgrad=True), 
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    return model
+        # recurrent layers
+        self.bilstm1 = Bidirectional(
+            LSTM(units=256,
+                 kernel_regularizer=l2(1e-4),
+                 recurrent_regularizer=l2(1e-4),
+                 return_sequences=True))
 
-# def attention_augmented_rnn(input_shape):
-#     _input = Input(shape=input_shape)
-#     x = GaussianNoise(stddev=0.05)(_input)
-#     x = Bidirectional(CuDNNLSTM(units=128, return_sequences=True))(x)
-#     x = AttentionBlock(input_shape)(x)
-#     x = TimeDistributed(Dense(units=128, activation=LeakyReLU()))(x)
-#     x = Flatten()(x)
-#     output = Dense(units=3, activation='softmax')(x)
+        self.normalization = LayerNormalization(epsilon=1e-6)
 
-#     model = Model(inputs=_input, outputs=output)
-#     model.compile(optimizer=Adam(lr=1e-3, clipnorm=1, decay=1e-5, amsgrad=True), 
-#                   loss='categorical_crossentropy',
-#                   metrics=['accuracy'])
-#     return model
+        # if we have conv after, then return sequences
+        self.bilstm2 = Bidirectional(
+            LSTM(units=256,
+                 kernel_regularizer=l2(1e-4),
+                 recurrent_regularizer=l2(1e-4),
+                 return_sequences=self.conv_after))
 
+        # post recurrent conv layers
+        self.conv3 = Conv1DBlock(
+            filters=256,
+            kernel_size=6,
+            dropout_rate=0.25,
+            pool_size=3,
+            data_format='channels_last'
+        )
+        self.flatten = Flatten()
 
-
-class AttentionBlock(tf.keras.Model):
-    def __init__(self, input_shape):
-        super(AttentionBlock, self).__init__(name='')
-        # self.input_shape = input_shape
-        self.permute = Permute((2, 1))
-        # self.attention_scores = Dense(input_shape[0], activation='softmax')
-        self.attention_scores = Dense(input_shape[0])
+        # output layers
+        self.dense = Dense(3, activation='softmax')
 
     def call(self, input_tensor):
-        # expecting input_shape to be (batch_size, time_steps, num_features)
-        time_steps, num_features = input_tensor.shape[1:]
+        x = input_tensor
+        if self.conv_before:
+            x = self.conv1(x)
+            x = self.conv2(x)
+        x = self.bilstm1(x)
+        x = self.normalization(x)
+        x = self.bilstm2(x)
+        if self.conv_after:
+            x = self.conv3(x)
+            x = self.flatten(x)
+        return self.dense(x)
 
-        # format the input to the attention scorer to be 
-        # (batch, num_features, time_steps)
-        a = self.permute(input_tensor)
-        a = self.attention_scores(a)
-        a = self.permute(a)
-        return multiply([a, input_tensor]) # weight input by attention
+
+
+
+class Conv1DRNNAttentionModel(tf.keras.Model):
+    def __init__(self, input_shape):
+        # TODO add parameters for filter size, rnn hidden size, etc.
+        super().__init__()
+        # Conv layers
+        self.conv1 = Conv1DBlock(
+            filters=128, 
+            kernel_size=12,
+            dropout_rate=0.25, 
+            pool_size=3)
+        self.conv2 = Conv1DBlock(
+            filters=256, 
+            kernel_size=6,
+            dropout_rate=0.25, 
+            pool_size=3)
+        # recurrent layers
+        self.bilstm1 = Bidirectional(
+            LSTM(units=128,
+                 kernel_regularizer=l2(1e-4),
+                 recurrent_regularizer=l2(1e-4),
+                 return_sequences=True))
+        self.bilstm2 = Bidirectional(
+            LSTM(units=128,
+                 kernel_regularizer=l2(1e-4),
+                 recurrent_regularizer=l2(1e-4),
+                 return_sequences=True))
+        # reverse the shape since the convnet had channels first
+        # TODO FIGURE OUT HOW TO GET THE INPUT SHAPE
+        self.attention = AttentionBlock(
+            input_shape=self._attention_shape((None, 
+                                               input_shape[0], 
+                                               input_shape[1])))
+
+        # output layer
+        self.td_dense = TimeDistributed(Dense(units=128))
+        self.flatten = Flatten()
+        self.output_layer = Dense(units=3, activation='softmax')
+
+    def call(self, input_tensor):
+        x = self.conv2(self.conv2(input_tensor))
+        x = self.bilstm2(self.bilstm1(x))
+        x = self.attention(x)
+        x = self.td_dense(x)
+        return self.output_layer(self.flatten(x))
+
+    def _attention_shape(self, input_shape):
+        x = self.conv1.compute_output_shape(input_shape)
+        x = self.conv2.compute_output_shape(x)
+        x = self.bilstm1.compute_output_shape(x)
+        return self.bilstm2.compute_output_shape(x)
+
 
 class AttentionRNN(tf.keras.Model):
     """
@@ -192,19 +277,22 @@ class AttentionRNN(tf.keras.Model):
                  rnn_hidden_size=128, dense_hidden_size=128):
         super().__init__()
         self.num_classes = num_classes
-        # self.input_layer = Input(shape=input_shape)
         self.add_noise = GaussianNoise(stddev=0.05)
-        self.bilstm = Bidirectional(CuDNNLSTM(units=rnn_hidden_size,
-                                            return_sequences=True))
+        self.bilstm1 = Bidirectional(LSTM(units=rnn_hidden_size,
+                                              return_sequences=True))
+        self.normalization = LayerNormalization(epsilon=1e-6)
+        self.bilstm2 = Bidirectional(LSTM(units=rnn_hidden_size,
+                                              return_sequences=True))
         self.attention = AttentionBlock(input_shape)
         self.td_dense = TimeDistributed(Dense(units=dense_hidden_size))
         self.flatten = Flatten()
         self.output_layer = Dense(units=num_classes, activation='softmax')
 
     def call(self, input_tensor):
-        # _input = self.input_layer(input_tensor)
         x = self.add_noise(input_tensor)
-        x = self.bilstm(x)
+        x = self.bilstm1(x)
+        x = self.normalization(x)
+        x = self.bilstm2(x)
         x = self.attention(x)
         x = self.td_dense(x)
         x = self.flatten(x)

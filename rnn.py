@@ -1,5 +1,6 @@
 
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ReduceLROnPlateau
 from tensorflow.keras.utils import normalize
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
@@ -7,6 +8,7 @@ from sklearn.metrics import classification_report
 from models import rnn_model
 from utils import load_data
 
+tf.compat.v1.disable_eager_execution()
 
 # data setup
 X_train, X_val, y_train, y_val = load_data(channels_first=False)
@@ -18,7 +20,7 @@ callbacks = [EarlyStopping(patience=4),
 
 # train
 clf.fit(X_train, y_train,
-        epochs=20,
+        epochs=100,
         batch_size=256,
         verbose=1,
         validation_data=(X_val, y_val),

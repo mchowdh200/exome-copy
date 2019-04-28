@@ -35,7 +35,8 @@ def load_data(del_file='./data/dataset/deletions.pkl',
     # make fixed length sequences
     data_padded = [pad_sequences(d, maxlen=seq_length, 
                                  padding='post',
-                                 truncating='post')
+                                 truncating='post',
+                                 dtype='float32')
                    for d in data]
     data_padded = np.array(data_padded)
 
