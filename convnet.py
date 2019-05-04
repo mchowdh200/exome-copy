@@ -25,7 +25,7 @@ callbacks = [EarlyStopping(patience=4, restore_best_weights=True),
 
 # train
 clf.fit(X_train, y_train,
-        epochs=20,
+        epochs=100,
         batch_size=512,
         verbose=1,
         validation_data=(X_val, y_val),
