@@ -1,37 +1,29 @@
-
-import numpy as np
-import pandas as pd
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.utils import normalize
-from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
-from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ReduceLROnPlateau
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize
-from sklearn.metrics import classification_report
-
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from models import ModelFactory, Conv1DModel
 from utils import load_data
+from cross_val import run_model
 tf.compat.v1.disable_eager_execution()
 
 # setup
-X_train, X_val, y_train, y_val = load_data()
+data, labels = load_data()
+classes = {0: 'Non-SV', 1: 'Deletion', 2: 'Duplication'}
 
-clf = KerasClassifier(build_fn=ModelFactory(Conv1DModel, normalization_type='batch'),
-                      lr=2.5e-3)
+model_factory = ModelFactory(Conv1DModel, normalization_type='batch')
 callbacks = [EarlyStopping(patience=4, restore_best_weights=True),
              ReduceLROnPlateau(patience=3, factor=0.2)]
+compile_params = dict(lr=1e-3)
 
-# train
-clf.fit(X_train, y_train,
-        epochs=100,
-        batch_size=512,
-        verbose=1,
-        validation_data=(X_val, y_val),
-        callbacks=callbacks)
-
-# evaluate
-y_pred = clf.model.predict(X_val)
-print(classification_report(np.argmax(y_val, axis=1), 
-                            np.argmax(y_pred, axis=1)))
+run_model(
+    data, labels,
+    model_factory=model_factory,
+    callbacks=callbacks,
+    compile_params=compile_params,
+    classes=classes,
+    folds=2,
+    n_classes=3,
+    epochs=1,
+    batch_size=512,
+    out_dir='output/',
+    model_name='Conv1D',
+)

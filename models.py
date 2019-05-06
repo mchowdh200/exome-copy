@@ -146,7 +146,7 @@ class Conv1DModel(tf.keras.Model):
         return self.softmax(self.flatten(x))
 
 
-def rnn_model(input_shape):
+def rnn_model(input_shape, lr=5e-4, clipnorm=1, amsgrad=True):
     """
     Simple Bidirectional RNN model, shape of the input is
     (batch_size, seq_length, features)
@@ -160,10 +160,10 @@ def rnn_model(input_shape):
     ])
 
     model.compile(
-        optimizer=Adam(lr=5e-4,
-                       clipnorm=1, 
+        optimizer=Adam(lr=lr,
+                       clipnorm=clipnorm, 
                        # decay=0.05,
-                       amsgrad=True), 
+                       amsgrad=amsgrad), 
         loss='categorical_crossentropy',
         metrics=['accuracy'])
     return model
