@@ -1,6 +1,7 @@
 #!/bin/bash
 
-EXON_BED=$1
+EXON_BED=../data/BED/20120518.consensus_add50bp.bed
+OUT_DIR=../data/BED
 
 TRAIN="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20"
 TEST="21 22 X Y"
@@ -16,7 +17,7 @@ awk -v chromosomes="$TRAIN" \ '
             print $0     # then print the line
         }
     } 
-' $EXON_BED > data/chr1-20.bed
+' $EXON_BED > $OUT_DIR/train_regions.bed
 
 awk -v chromosomes="$TEST" \ '
     BEGIN {
@@ -29,4 +30,4 @@ awk -v chromosomes="$TEST" \ '
             print $0
         }
     } 
-' $EXON_BED > data/chr21-Y.bed
+' $EXON_BED > $OUT_DIR/test_regions.bed
