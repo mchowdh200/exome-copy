@@ -3,8 +3,8 @@
 #SBATCH --job-name=structural_variant_extraction
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=much8161@colorado.edu
-#SBATCH --nodes=2
-#SBATCH --ntasks=128
+#SBATCH --nodes=1
+#SBATCH --ntasks=64
 #SBATCH --mem=64gb
 #SBATCH --time=24:00:00
 #SBATCH --output=/Users/much8161/Repositories/exome-copy/out/structural_variant_extraction.out
@@ -21,5 +21,5 @@ SAMPLES=$(sort <(cat data/samples.txt) <(bcftools query -l \
     data/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz) | \
     uniq -d)
 
-echo "$SAMPLES" | gargs -p 128 "bash get_labels.sh {} $OUT_DIR"
+echo "$SAMPLES" | gargs -p 64 "bash get_labels.sh {} $OUT_DIR"
 # echo HG00096 | gargs -p 1 "bash get_labels.sh {} $OUT_DIR"

@@ -11,7 +11,9 @@ OUT_DIR=$2
 VCF=data/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz
 
 # Exon locations
-EXON_BED=data/20120518.consensus_add50bp.bed
+# EXON_BED=data/20120518.consensus_add50bp.bed # Non-Tiled
+#
+EXON_BED=data/exons_tiled.bed
 
 # get deletions
 if [ ! -f "$OUT_DIR/$SAMPLE.del.bed" ]; then
