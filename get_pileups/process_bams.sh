@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # input bam file and output directory
+# TODO modify this script to match the command line args
 BAM_FILE_WITH_DIR=$1
 DATA_DIR=$2
 
