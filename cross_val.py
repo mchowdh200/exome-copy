@@ -18,8 +18,8 @@ from utils import *
 
 
 def run_model(data, labels, model_factory, callbacks, compile_params,
-              classes, folds=10, n_classes=3, epochs=100, batch_size=512,
-              out_dir='', model_name='model'):
+              classes, folds=10, n_classes=3, class_weight=None, epochs=100, batch_size=512,
+              out_dir='', model_name='model', verbose=2):
 
     # data, labels = load_data()
     ratios = np.array([np.sum(np.argmax(labels, axis=1) == 0),
@@ -43,9 +43,19 @@ def run_model(data, labels, model_factory, callbacks, compile_params,
     # axis 1 is for precision, recall, f1, and support respectively
     pr_F1 = np.zeros((folds, 4, n_classes))
 
+    if folds > 1:
+        splits = StratifiedKFold(n_splits=folds, shuffle=True) \
+                .split(data, np.argmax(labels, axis=1))
+    else:
+        splits = StratifiedKFold(n_splits=10, shuffle=True) \
+                .split(data, np.argmax(labels, axis=1))
+        # just get one of the splits for a single fold
+        train, test = next(splits)
+        splits = [(train, test)] 
+
+
     # cross val loop ----------------------------------------------------------------------------------
-    for i, (train, test) in enumerate(StratifiedKFold(n_splits=folds, shuffle=True)
-                                      .split(data, np.argmax(labels, axis=1))):
+    for i, (train, test) in enumerate(splits):
         print('-'*100)
         print('FOLD {}'.format(i))
         print('-'*100)
@@ -57,9 +67,10 @@ def run_model(data, labels, model_factory, callbacks, compile_params,
         X, y = shuffle(data[train], labels[train])
         clf.fit(X, y,
                 # epochs=100,
+                class_weight=class_weight,
                 epochs=epochs,
                 batch_size=batch_size,
-                verbose=2,
+                verbose=verbose,
                 validation_split=0.1,
                 callbacks=callbacks)
 
@@ -94,7 +105,7 @@ def run_model(data, labels, model_factory, callbacks, compile_params,
     # Classification report with mean/std metrics -----------------------------------------------------
     print('\tprec\t\trecall\t\tf1\t\tsupport\n')
     for i in range(n_classes):
-        print('%d\t%.3f +/- %.3f\t%.3f +/- %.3f\t%.3f +/- %.3f\t%d' 
+        print('%d\t%.3f (+/- %.3f)\t%.3f (+/- %.3f)\t%.3f (+/- %.3f)\t%d' 
               % (i, avg_prf1[0][i], std_prf1[0][i],
                  avg_prf1[1][i], std_prf1[1][i],
                  avg_prf1[2][i], std_prf1[2][i],
