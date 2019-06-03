@@ -1,16 +1,16 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv1D, AveragePooling1D
-from tensorflow.keras.layers import LSTM, Bidirectional
-from tensorflow.keras.layers import Activation, LeakyReLU
-from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers.experimental import LayerNormalization
-from tensorflow.keras.layers import GaussianNoise, Dropout
-from tensorflow.keras.layers import TimeDistributed, Flatten, Permute
-from tensorflow.keras.layers import multiply
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.optimizers import Adam
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Dense, Conv1D, AveragePooling1D
+# from tensorflow.keras.layers import LSTM, Bidirectional
+# from tensorflow.keras.layers import Activation, LeakyReLU
+# from tensorflow.keras.layers import BatchNormalization
+# from tensorflow.keras.layers.experimental import LayerNormalization
+# from tensorflow.keras.layers import GaussianNoise, Dropout
+# from tensorflow.keras.layers import TimeDistributed, Flatten, Permute
+# from tensorflow.keras.layers import multiply
+# from tensorflow.keras.regularizers import l2
+# from tensorflow.keras.optimizers import Adam
 
 
 # -----------------------------------------------------------------------------
@@ -47,10 +47,11 @@ class ModelFactory:
         # TODO If model needs to be run eagerly, then we need to pass in a tensor
         # to evaluate before compiling
 
-        model.compile(optimizer=Adam(lr=lr, clipnorm=clipnorm,
-                                     decay=decay, amsgrad=amsgrad),
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
+        model.compile(
+            optimizer= tf.keras.optimizers.Adam(lr=lr, clipnorm=clipnorm,
+                                                decay=decay, amsgrad=amsgrad),
+            loss='categorical_crossentropy',
+            metrics=['accuracy'])
         return model
 
 # -----------------------------------------------------------------------------
@@ -66,18 +67,21 @@ class Conv1DBlock(tf.keras.Model):
                  data_format='channels_first',
                  normalization_type='batch'):
         super().__init__()
-        self.conv1d = Conv1D(filters=filters, kernel_size=kernel_size,
-                             strides=strides, dilation_rate=dilation_rate,
-                             data_format=data_format,
-                             kernel_initializer='glorot_uniform')
-        self.dropout = Dropout(rate=dropout_rate)
+        self.conv1d = tf.keras.layers.Conv1D(
+            filters=filters, kernel_size=kernel_size,
+            strides=strides, dilation_rate=dilation_rate,
+            data_format=data_format,
+            kernel_initializer='glorot_uniform')
+        self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         if normalization_type == 'batch':
-            self.normalization = BatchNormalization()
+            self.normalization = tf.keras.layers.BatchNormalization()
         else:
             self.normalization = LayerNormalization(epsilon=1e-6)
-        self.leaky_relu = Activation(LeakyReLU())
-        self.avg_pool = AveragePooling1D(pool_size=pool_size,
-                                         data_format=data_format)
+        self.leaky_relu = tf.keras.layers.Activation(
+            tf.kerasl.layer.LeakyReLU())
+        self.avg_pool = tf.keras.layers.AveragePooling1D(
+            pool_size=pool_size,
+            data_format=data_format)
 
     def call(self, input_tensor):
         x = self.conv1d(input_tensor)
@@ -104,9 +108,10 @@ class AttentionBlock(tf.keras.Model):
     def __init__(self, input_shape):
         super(AttentionBlock, self).__init__(name='')
         # self.input_shape = input_shape
-        self.permute = Permute((2, 1))
-        self.dense = Dense(input_shape[0], activation='relu')
-        self.attention_scores = Dense(input_shape[0], name='attention_scores')
+        self.permute = tf.keras.layers.Permute((2, 1))
+        self.dense = tf.keras.layers.Dense(input_shape[0], activation='relu')
+        self.attention_scores = tf.keras.layers.Dense(input_shape[0], 
+                                                      name='attention_scores')
 
     def call(self, input_tensor):
         # expecting input_shape to be (batch_size, time_steps, num_features)
@@ -116,7 +121,7 @@ class AttentionBlock(tf.keras.Model):
         a = self.dense(a)
         a = self.attention_scores(a)
         a = self.permute(a)
-        return multiply([a, input_tensor]) # weight input by attention
+        return tf.keras.layers.multiply([a, input_tensor]) # weight input by attention
 
 
 # -----------------------------------------------------------------------------
@@ -124,7 +129,7 @@ class AttentionBlock(tf.keras.Model):
 class Conv1DModel(tf.keras.Model):
     def __init__(self, normalization_type='batch'):
         super().__init__()
-        self.add_noise = GaussianNoise(stddev=0.01)
+        self.add_noise = tf.keras.layers.GaussianNoise(stddev=0.01)
         self.conv1 = Conv1DBlock(
             filters=128, 
             kernel_size=12,
@@ -137,8 +142,8 @@ class Conv1DModel(tf.keras.Model):
             dropout_rate=0.25,
             pool_size=3,
             normalization_type=normalization_type)
-        self.flatten = Flatten()
-        self.softmax = Dense(3, activation='softmax')
+        self.flatten = tf.keras.layers.Flatten()
+        self.softmax = tf.keras.layers.Dense(3, activation='softmax')
 
     def call(self, input_tensor):
         x = self.add_noise(input_tensor)
@@ -152,19 +157,20 @@ def rnn_model(input_shape, lr=5e-4, decay=0.0, clipnorm=1, amsgrad=True):
     Simple Bidirectional RNN model, shape of the input is
     (batch_size, seq_length, features)
     """
-    model = Sequential([
-        Bidirectional(LSTM(units=256, input_shape=input_shape,
-                           return_sequences=False)),
-        LayerNormalization(epsilon=1e-6),
-        # Bidirectional(LSTM(units=256, input_shape=input_shape,)),
-        Dense(units=3, activation='softmax')
+    model = tf.keras.Sequential([
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(
+            units=256, input_shape=input_shape,
+            return_sequences=False)),
+        tf.keras.layers.experimental.LayerNormalization(epsilon=1e-6),
+        tf.keras.layers.Dense(units=3, activation='softmax')
     ])
 
     model.compile(
-        optimizer=Adam(lr=lr,
-                       clipnorm=clipnorm, 
-                       decay=decay,
-                       amsgrad=amsgrad), 
+        optimizer=tf.keras.optimizers.Adam(
+            lr=lr,
+            clipnorm=clipnorm, 
+            decay=decay,
+            amsgrad=amsgrad), 
         loss='categorical_crossentropy',
         metrics=['accuracy'])
     return model
@@ -174,18 +180,19 @@ def dense_model(input_shape, lr=5e-4, decay=0.0, clipnorm=1, amsgrad=True):
     Simple Bidirectional RNN model, shape of the input is
     (batch_size, seq_length, features)
     """
-    model = Sequential([
-        Flatten(input_shape=input_shape),
-        Dense(500, activation='relu'),
-        Dense(500, activation='relu'),
-        Dense(units=3, activation='softmax')
+    model = tf.keras.Sequential([
+        tf.keras.layers.Flatten(input_shape=input_shape),
+        tf.keras.layers.Dense(500, activation='relu'),
+        tf.keras.layers.Dense(500, activation='relu'),
+        tf.keras.layers.Dense(units=3, activation='softmax')
     ])
 
     model.compile(
-        optimizer=Adam(lr=lr,
-                       clipnorm=clipnorm, 
-                       decay=decay,
-                       amsgrad=amsgrad), 
+        optimizer=tf.keras.optimizers.Adam(
+            lr=lr,
+            clipnorm=clipnorm, 
+            decay=decay,
+            amsgrad=amsgrad), 
         loss='categorical_crossentropy',
         metrics=['accuracy'])
     return model
@@ -198,7 +205,7 @@ class Conv1DRNNModel(tf.keras.Model):
         self.conv_before = conv_before
         self.conv_after = conv_after
 
-        self.add_noise = GaussianNoise(stddev=0.01)
+        self.add_noise = tf.keras.layers.GaussianNoise(stddev=0.01)
 
         # pre recurrent conv layers
         self.conv1 = Conv1DBlock(
@@ -217,20 +224,22 @@ class Conv1DRNNModel(tf.keras.Model):
             data_format='channels_last')
 
         # recurrent layers
-        self.bilstm1 = Bidirectional(
-            LSTM(units=256,
-                 kernel_regularizer=l2(1e-4),
-                 recurrent_regularizer=l2(1e-4),
-                 return_sequences=True))
+        self.bilstm1 = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(
+                units=256,
+                kernel_regularizer=tf.keras.regularizers.l2(1e-4),
+                recurrent_regularizer=tf.keras.regularizers.l2(1e-4),
+                return_sequences=True))
 
-        self.normalization = LayerNormalization(epsilon=1e-6)
+        self.normalization = tf.keras.layers.experimental.LayerNormalization(epsilon=1e-6)
 
         # if we have conv after, then return sequences
-        self.bilstm2 = Bidirectional(
-            LSTM(units=256,
-                 kernel_regularizer=l2(1e-4),
-                 recurrent_regularizer=l2(1e-4),
-                 return_sequences=self.conv_after))
+        self.bilstm2 = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(
+                units=256,
+                kernel_regularizer=tf.keras.regularizers.l2(1e-4),
+                recurrent_regularizer=tf.keras.regularizers.l2(1e-4),
+                return_sequences=self.conv_after))
 
         # post recurrent conv layers
         self.conv3 = Conv1DBlock(
@@ -240,10 +249,10 @@ class Conv1DRNNModel(tf.keras.Model):
             pool_size=3,
             data_format='channels_last'
         )
-        self.flatten = Flatten()
+        self.flatten = tf.keras.layers.Flatten()
 
         # output layers
-        self.dense = Dense(3, activation='softmax')
+        self.dense = tf.keras.layers.Dense(3, activation='softmax')
 
     def call(self, input_tensor):
         x = input_tensor
@@ -268,20 +277,21 @@ class AttentionRNN(tf.keras.Model):
                  rnn_hidden_size=128, dense_hidden_size=128):
         super().__init__()
         self.num_classes = num_classes
-        self.add_noise = GaussianNoise(stddev=0.01)
+        self.add_noise = tf.keras.layers.GaussianNoise(stddev=0.01)
 
         # self.project = TimeDistributed(Dense(dense_hidden_size))
         # self.dropout = Dropout(0.2)
 
-        self.bilstm = Bidirectional(LSTM(rnn_hidden_size, return_sequences=True))
-                       
-        self.normalization = LayerNormalization(epsilon=1e-6)
+        self.bilstm = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(rnn_hidden_size, return_sequences=True))
+        self.normalization = tf.keras.layers.experimental.LayerNormalization(epsilon=1e-6)
         self.attention = AttentionBlock(input_shape)
 
-        self.td_dense = TimeDistributed(Dense(units=dense_hidden_size))
-        self.flatten = Flatten()
+        self.td_dense = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.Dense(units=dense_hidden_size))
+        self.flatten = tf.keras.layers.Flatten()
 
-        self.output_layer = Dense(units=num_classes, activation='softmax')
+        self.output_layer = tf.keras.layers.Dense(units=num_classes, activation='softmax')
 
         # used to store attention score for visualization purposes
         # self.attention_score = None

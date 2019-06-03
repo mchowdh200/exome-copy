@@ -1,14 +1,11 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-# from tensorflow.keras.utils import to_categorical, normalize
-# from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 def load_data(del_file='./data/dataset/deletions.pkl', 
               dup_file='./data/dataset/duplications.pkl', 
               non_file='./data/dataset/non_sv.pkl',
               seq_length=500, 
-              # test_size=0.1, 
               channels_first=True,
               normalize_data=False):
     """
@@ -51,9 +48,6 @@ def load_data(del_file='./data/dataset/deletions.pkl',
         # RNN input shape needs to be (batch_size, seq_length, input_features)
         data_padded = np.swapaxes(data_padded, 1, 2)
 
-    # split data making sure to preserve the class balance
-    # return train_test_split(data_padded, labels, 
-    #                         stratify=labels, test_size=test_size)
     return data_padded, labels
 
 
