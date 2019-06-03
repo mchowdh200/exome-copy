@@ -20,10 +20,11 @@ run_model(
     callbacks=callbacks,
     compile_params=compile_params,
     classes=classes,
-    folds=2,
+    folds=1,
     n_classes=3,
     epochs=1,
     batch_size=512,
     out_dir='output/',
     model_name='Conv1D',
+    verbose=1
 )

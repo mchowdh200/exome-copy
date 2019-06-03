@@ -4,7 +4,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv1D, AveragePooling1D
 from tensorflow.keras.layers import LSTM, Bidirectional
 from tensorflow.keras.layers import Activation, LeakyReLU
-from tensorflow.keras.layers import BatchNormalization, LayerNormalization
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers.experimental import LayerNormalization
 from tensorflow.keras.layers import GaussianNoise, Dropout
 from tensorflow.keras.layers import TimeDistributed, Flatten, Permute
 from tensorflow.keras.layers import multiply
@@ -105,7 +106,7 @@ class AttentionBlock(tf.keras.Model):
         # self.input_shape = input_shape
         self.permute = Permute((2, 1))
         self.dense = Dense(input_shape[0], activation='relu')
-        self.attention_scores = Dense(input_shape[0])
+        self.attention_scores = Dense(input_shape[0], name='attention_scores')
 
     def call(self, input_tensor):
         # expecting input_shape to be (batch_size, time_steps, num_features)
@@ -146,23 +147,44 @@ class Conv1DModel(tf.keras.Model):
         return self.softmax(self.flatten(x))
 
 
-def rnn_model(input_shape, lr=5e-4, clipnorm=1, amsgrad=True):
+def rnn_model(input_shape, lr=5e-4, decay=0.0, clipnorm=1, amsgrad=True):
     """
     Simple Bidirectional RNN model, shape of the input is
     (batch_size, seq_length, features)
     """
     model = Sequential([
         Bidirectional(LSTM(units=256, input_shape=input_shape,
-                           return_sequences=True)),
+                           return_sequences=False)),
         LayerNormalization(epsilon=1e-6),
-        Bidirectional(LSTM(units=256, input_shape=input_shape,)),
+        # Bidirectional(LSTM(units=256, input_shape=input_shape,)),
         Dense(units=3, activation='softmax')
     ])
 
     model.compile(
         optimizer=Adam(lr=lr,
                        clipnorm=clipnorm, 
-                       # decay=0.05,
+                       decay=decay,
+                       amsgrad=amsgrad), 
+        loss='categorical_crossentropy',
+        metrics=['accuracy'])
+    return model
+
+def dense_model(input_shape, lr=5e-4, decay=0.0, clipnorm=1, amsgrad=True):
+    """
+    Simple Bidirectional RNN model, shape of the input is
+    (batch_size, seq_length, features)
+    """
+    model = Sequential([
+        Flatten(input_shape=input_shape),
+        Dense(500, activation='relu'),
+        Dense(500, activation='relu'),
+        Dense(units=3, activation='softmax')
+    ])
+
+    model.compile(
+        optimizer=Adam(lr=lr,
+                       clipnorm=clipnorm, 
+                       decay=decay,
                        amsgrad=amsgrad), 
         loss='categorical_crossentropy',
         metrics=['accuracy'])
@@ -180,13 +202,15 @@ class Conv1DRNNModel(tf.keras.Model):
 
         # pre recurrent conv layers
         self.conv1 = Conv1DBlock(
-            filters=256, 
+            # filters=256, 
+            filters=128, 
             kernel_size=12,
             dropout_rate=0.25, 
             pool_size=3,
             data_format='channels_last')
         self.conv2 = Conv1DBlock(
-            filters=512, 
+            # filters=512, 
+            filters=64, 
             kernel_size=6,
             dropout_rate=0.25, 
             pool_size=3,
@@ -244,11 +268,10 @@ class AttentionRNN(tf.keras.Model):
                  rnn_hidden_size=128, dense_hidden_size=128):
         super().__init__()
         self.num_classes = num_classes
-        self.add_noise = GaussianNoise(stddev=0.05)
+        self.add_noise = GaussianNoise(stddev=0.01)
 
-        self.project = TimeDistributed(Dense(dense_hidden_size))
-
-        self.dropout = Dropout(0.2)
+        # self.project = TimeDistributed(Dense(dense_hidden_size))
+        # self.dropout = Dropout(0.2)
 
         self.bilstm = Bidirectional(LSTM(rnn_hidden_size, return_sequences=True))
                        
@@ -259,6 +282,9 @@ class AttentionRNN(tf.keras.Model):
         self.flatten = Flatten()
 
         self.output_layer = Dense(units=num_classes, activation='softmax')
+
+        # used to store attention score for visualization purposes
+        # self.attention_score = None
 
     def call(self, input_tensor):
         x = self.add_noise(input_tensor)
