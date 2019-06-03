@@ -1,16 +1,5 @@
 import numpy as np
 import tensorflow as tf
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import Dense, Conv1D, AveragePooling1D
-# from tensorflow.keras.layers import LSTM, Bidirectional
-# from tensorflow.keras.layers import Activation, LeakyReLU
-# from tensorflow.keras.layers import BatchNormalization
-# from tensorflow.keras.layers.experimental import LayerNormalization
-# from tensorflow.keras.layers import GaussianNoise, Dropout
-# from tensorflow.keras.layers import TimeDistributed, Flatten, Permute
-# from tensorflow.keras.layers import multiply
-# from tensorflow.keras.regularizers import l2
-# from tensorflow.keras.optimizers import Adam
 
 
 # -----------------------------------------------------------------------------
@@ -76,9 +65,9 @@ class Conv1DBlock(tf.keras.Model):
         if normalization_type == 'batch':
             self.normalization = tf.keras.layers.BatchNormalization()
         else:
-            self.normalization = LayerNormalization(epsilon=1e-6)
+            self.normalization = tf.keras.layers.experimental.LayerNormalization(epsilon=1e-6)
         self.leaky_relu = tf.keras.layers.Activation(
-            tf.kerasl.layer.LeakyReLU())
+            tf.keras.layer.LeakyReLU())
         self.avg_pool = tf.keras.layers.AveragePooling1D(
             pool_size=pool_size,
             data_format=data_format)

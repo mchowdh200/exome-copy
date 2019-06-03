@@ -27,8 +27,9 @@ args = parser.parse_args()
 print(args)
 
 import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from models import *
+# from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+# from models import *
+import models
 from utils import load_data
 from cross_val import run_model
 tf.compat.v1.disable_eager_execution()
@@ -37,8 +38,10 @@ tf.compat.v1.disable_eager_execution()
 
 # get dataset
 channels_first = True if args.model_name == 'CNN' else False
-data, labels = load_data(seq_length=args.seq_length, 
-                         channels_first=channels_first, normalize_data=True)
+data, labels = load_data(
+    seq_length=args.seq_length, 
+    channels_first=channels_first, 
+    normalize_data=True)
 
 # these paramters will be passed to the KerasClassifier 
 # upon instantiation of our model.
@@ -46,34 +49,37 @@ compile_params = dict(lr=args.lr, decay=args.decay)
 if args.model_name in ('RNN', 'RNN-Attention', 'Dense'):
     compile_params['input_shape'] = data.shape[1:]
 
-callbacks = [EarlyStopping(monitor='val_accuracy',
-                           patience=args.patience, 
-                           restore_best_weights=True),
-             ReduceLROnPlateau(monitor='val_accuracy',
-                               patience=max(args.patience-2, 1), 
-                               factor=0.2)]
+callbacks = [
+    tf.keras.callbacks.EarlyStopping(
+        monitor='val_accuracy',
+        patience=args.patience, 
+        restore_best_weights=True),
+    tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_accuracy',
+        patience=max(args.patience-2, 1), 
+        factor=0.2)]
 
 classes = {0: 'Non-SV', 1: 'Deletion', 2: 'Duplication'}
 class_weight = {0: 1.0, 1: 1.0, 2: 2.0}
 
 model_factory = {
-    'CNN': ModelFactory(
-        Conv1DModel, 
+    'CNN': models.ModelFactory(
+        models.Conv1DModel, 
         normalization_type='batch'),
 
-    'RNN': rnn_model,
+    'RNN': models.rnn_model,
 
-    'CNN-RNN': ModelFactory(
-        Conv1DRNNModel, 
+    'CNN-RNN': models.ModelFactory(
+        models.Conv1DRNNModel, 
         conv_before=True, 
         conv_after=False),
 
-    'RNN-Attention': ModelFactory(
-        AttentionRNN, 
+    'RNN-Attention': models.ModelFactory(
+        models.AttentionRNN, 
         rnn_hidden_size=256,
         dense_hidden_size=256),
-    'Dense': ModelFactory(
-        dense_model
+    'Dense': models.ModelFactory(
+        models.dense_model
     )
 }
 

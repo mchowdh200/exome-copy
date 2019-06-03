@@ -2,9 +2,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-def load_data(del_file='./data/dataset/deletions.pkl', 
-              dup_file='./data/dataset/duplications.pkl', 
-              non_file='./data/dataset/non_sv.pkl',
+def load_data(del_file, dup_file, non_file,
               seq_length=500, 
               channels_first=True,
               normalize_data=False):
