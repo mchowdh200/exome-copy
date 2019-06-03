@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-# from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical, normalize
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+import tensorflow as tf
+# from tensorflow.keras.utils import to_categorical, normalize
+# from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 def load_data(del_file='./data/dataset/deletions.pkl', 
               dup_file='./data/dataset/duplications.pkl', 
@@ -32,18 +32,20 @@ def load_data(del_file='./data/dataset/deletions.pkl',
         np.full((len(deletions,)), fill_value=1),
         np.full((len(duplications,)), fill_value=2)
     ))
-    labels = to_categorical(labels)
+    labels = tf.keras.utils.to_categorical(labels)
 
     # make fixed length sequences
-    data_padded = [pad_sequences(d, maxlen=seq_length, 
-                                 padding='post',
-                                 truncating='post',
-                                 dtype='float32')
-                   for d in data]
+    data_padded = [
+        tf.keras.preprocessing.sequence.pad_sequences(
+            d, maxlen=seq_length, 
+            padding='post',
+            truncating='post',
+            dtype='float32')
+        for d in data]
     data_padded = np.array(data_padded)
 
     if normalize_data:
-        data_padded = normalize(data_padded)
+        data_padded = tf.keras.utils.normalize(data_padded)
 
     if not channels_first:
         # RNN input shape needs to be (batch_size, seq_length, input_features)
