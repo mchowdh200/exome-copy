@@ -14,11 +14,6 @@ TRAIN_TEST=$1
 SAMPLES_LIST="../data/sample_lists/${TRAIN_TEST}_samples.txt"
 VCF="../data/VCF/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz"
 BED="../data/BED/${TRAIN_TEST}_regions.windowed.bed"
-
 OUT_DIR="/scratch/Shares/layer/projects/exome-copy/data/labels/$TRAIN_TEST"
 
-# get the intersection of samples from our exome bam set and the samples
-# in the structural variant vcf file.
-SAMPLES=$(sort <(cat $SAMPLES_LIST) <(bcftools query -l $VCF) | uniq -d)
-
-echo "$SAMPLES" | gargs -p 64 "bash get_labels.sh {} $VCF $BED $OUT_DIR"
+cat $SAMPLES_LIST | gargs -p 64 "bash get_labels.sh {} $VCF $BED $OUT_DIR"
