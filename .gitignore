@@ -1,0 +1,10 @@
+.ipynb_checkpoints/
+*.swp
+test.*
+out.*
+data/BAM/
+data/DataFrames/
+data/labels/
+data/pileups/
+data/ref/
+
