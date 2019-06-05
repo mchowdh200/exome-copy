@@ -40,7 +40,8 @@ def load_data(del_file, dup_file, non_file,
     data_padded = np.array(data_padded)
 
     if normalize_data:
-        data_padded = tf.keras.utils.normalize(data_padded)
+        # data_padded = tf.keras.utils.normalize(data_padded)
+        data_padded = data_padded/np.max(data_padded)
 
     if not channels_first:
         # RNN input shape needs to be (batch_size, seq_length, input_features)
