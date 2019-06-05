@@ -10,3 +10,7 @@ ILLUMINA_SAMPLES=$(grep "illumina" $SAMPLE_INDEX | cut -d '/' -f2)
 sort <(echo "$ILLUMINA_SAMPLES") \
      <(bcftools query -l $VCF) | \
      uniq -d | shuf > all_samples.txt
+
+# NOTE: why does that give us the intersection?
+# uniq -d gives us duplicate lines if they appear one after another.
+# Therefore we must sort first.
