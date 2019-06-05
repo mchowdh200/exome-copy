@@ -1,7 +1,8 @@
 import os
 import argparse
 import numpy as np
-import sklearn
+import sklearn.utils
+import sklearn.metrics
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -48,9 +49,9 @@ def run_model(X_train, y_train, X_val, y_val, X_test, y_test,
 
     # used for baselines in PR curves
     ratios = np.array([np.sum(np.argmax(y_test, axis=1) == 0),
-              np.sum(np.argmax(y_test, axis=1) == 1),
-              np.sum(np.argmax(y_test, axis=1) == 2),
-             ])/len(y_test)
+                       np.sum(np.argmax(y_test, axis=1) == 1),
+                       np.sum(np.argmax(y_test, axis=1) == 2),
+                      ])/len(y_test)
     # classes = {0: 'Non-SV', 1: 'Deletion', 2: 'Duplication'}
 
     # used to make shape of tpr/fpr, etc the same
@@ -165,31 +166,29 @@ def run_model(X_train, y_train, X_val, y_val, X_test, y_test,
 def model_setup(args):
     # get dataset
     channels_first = args.model_name == 'CNN'
-    # data, labels = load_data(
-    #     seq_length=args.seq_length, 
-    #     channels_first=channels_first, 
-    #     normalize_data=True)
+
+    normalize_data = True
     X_train, y_train = load_data(
         '../data/DataFrames/train/train_del.pkl',
         '../data/DataFrames/train/train_dup.pkl',
         '../data/DataFrames/train/train_nosv.pkl',
         seq_length=args.seq_length, 
         channels_first=channels_first, 
-        normalize_data=True)
+        normalize_data=normalize_data)
     X_val, y_val = load_data(
         '../data/DataFrames/val/val_del.pkl',
         '../data/DataFrames/val/val_dup.pkl',
         '../data/DataFrames/val/val_nosv.pkl',
         seq_length=args.seq_length, 
         channels_first=channels_first, 
-        normalize_data=True)
+        normalize_data=normalize_data)
     X_test, y_test = load_data(
         '../data/DataFrames/test/test_del.pkl',
         '../data/DataFrames/test/test_dup.pkl',
         '../data/DataFrames/test/test_nosv.pkl',
         seq_length=args.seq_length, 
         channels_first=channels_first, 
-        normalize_data=True)
+        normalize_data=normalize_data)
 
     # these paramters will be passed to the KerasClassifier 
     # upon instantiation of our model.
@@ -263,8 +262,8 @@ if __name__ == '__main__':
         '--epochs', dest='epochs', nargs='?', type=int, default=100,
         help='Epochs per fold.  Default = 100.')
     parser.add_argument(
-        '--out-dir', dest='out_dir', nargs='?', type=str, default='output',
-        help='Output directory.  Default is output.')
+        '--out-dir', dest='out_dir', nargs='?', type=str, default='../output',
+        help='Output directory.  Default is ../output.')
     parser.add_argument(
         '--model-type', dest='model_name', nargs='?', type=str, default='CNN',
         help="""Model to run.  Choices are CNN, RNN, CNN-RNN, RNN-Attention.

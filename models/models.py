@@ -67,7 +67,7 @@ class Conv1DBlock(tf.keras.Model):
         else:
             self.normalization = tf.keras.layers.experimental.LayerNormalization(epsilon=1e-6)
         self.leaky_relu = tf.keras.layers.Activation(
-            tf.keras.layer.LeakyReLU())
+            tf.keras.layers.LeakyReLU())
         self.avg_pool = tf.keras.layers.AveragePooling1D(
             pool_size=pool_size,
             data_format=data_format)
